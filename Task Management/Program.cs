@@ -1,10 +1,14 @@
-
-using Microsoft.EntityFrameworkCore;
-using Task_Management.Models;
-using Task_Management.Repository;
+using FluentValidation;
+ 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Task_Management.Filters;
+using Task_Management.Models;
+using Task_Management.Repository;
+using Task_Management.Services;
 namespace Task_Management
 {
     public class Program
@@ -15,15 +19,29 @@ namespace Task_Management
 
 
             builder.Services.AddControllers();
-
+            builder.Services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.SuppressModelStateInvalidFilter = true;
+            });
             builder.Services.AddDbContext<ApplicationContext>(options =>
             {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
             });
+            builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+            {
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
 
+            }).AddEntityFrameworkStores<ApplicationContext>();
             builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
             builder.Services.AddScoped<ITaskRepository , TaskRepository>();
             builder.Services.AddScoped<IUnifOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IJwtService , JwtService>();
+            builder.Services.AddScoped<IAccountService, AccountService>();
+
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+            builder.Services.AddControllers(options => options.Filters
+                            .Add(typeof(ValidationFilter)));
 
             builder.Services.AddAuthentication(options =>
             {
@@ -63,6 +81,7 @@ namespace Task_Management
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
 
