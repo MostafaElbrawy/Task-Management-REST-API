@@ -56,9 +56,9 @@ namespace Task_Management.Services
 
         public async Task<ApiResponse<ProjectDto?>> Create(CreateUpdateProjectDto createDto,int userId)
         {
-            var nameExists = await _unitOfWork.Projects.GetByNameAsync(createDto.Name) != null;
-
-            if (nameExists)
+            
+            var existingProject= await _unitOfWork.Projects.GetByNameAsync(createDto.Name);
+            if (existingProject != null && existingProject.UserId == userId)
                 return ApiResponse<ProjectDto?>.ValidationError(message:"Project name aleardy exists");
 
             var project = new Project
@@ -90,8 +90,8 @@ namespace Task_Management.Services
 
             if (updateDto.Name.ToLower() != project.Name.ToLower())
             {
-                var nameExists = await _unitOfWork.Projects.GetByNameAsync(updateDto.Name) != null;
-                if (nameExists)
+                var existingProject = await _unitOfWork.Projects.GetByNameAsync(updateDto.Name);
+                if (existingProject != null && existingProject.UserId == userId)
                     return ApiResponse<ProjectDto?>.ValidationError(message: "Project name aleardy exists");
             }
 

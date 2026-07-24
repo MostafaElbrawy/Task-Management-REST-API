@@ -59,7 +59,7 @@ public static class DbInitializer
         }
 
         context.Set<Project>().AddRange(projects);
-        await context.SaveChangesAsync(); // so each project gets its Id before we attach tasks
+        await context.SaveChangesAsync();
 
         foreach (var project in projects)
         {
@@ -76,7 +76,7 @@ public static class DbInitializer
 
         var user = new ApplicationUser
         {
-            UserName = email, // email = username, as requested
+            UserName = email, 
             Email = email,
             EmailConfirmed = true
         };
@@ -91,10 +91,6 @@ public static class DbInitializer
         return user;
     }
 
-    // Generates 12 tasks per project with deliberately varied Status, Priority,
-    // DueDate (including overdue, no-due-date, near-future and far-future) and
-    // CreatedAt so that filtering/sorting/pagination/search all have real
-    // combinations to exercise.
     private static List<Models.Task> GenerateTasks(Project project, DateTime now)
     {
         string[] verbs = { "Implement", "Fix", "Refactor", "Add", "Remove", "Optimize", "Update", "Design", "Test", "Document", "Investigate", "Review" };
@@ -109,10 +105,7 @@ public static class DbInitializer
         Status[] statusCycle = { Status.Todo, Status.InProgress, Status.Done };
         Priority[] priorityCycle = { Priority.Low, Priority.Medium, Priority.High };
 
-        // Offsets (in days) from "now" for DueDate; null = no due date.
-        // Includes overdue (negative) entries on purpose — these are seeded
-        // directly into the database, bypassing the API's "no past due dates"
-        // validation, so you have realistic "already overdue" data to filter on.
+
         int?[] dueOffsets = { -10, -5, -2, null, 1, 3, 5, 7, 10, 14, 21, 30 };
 
         var tasks = new List<Models.Task>();

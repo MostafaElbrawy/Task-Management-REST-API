@@ -30,7 +30,7 @@ namespace Task_Management.Models
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<Project>()
-                .HasIndex(p => p.Name) 
+                .HasIndex(p => new { p.UserId , p.Name}) 
                 .IsUnique();
 
             builder.Entity<Task>()
@@ -38,9 +38,15 @@ namespace Task_Management.Models
 
             builder.Entity<Task>()
                 .HasIndex(t => t.DueDate);
+
+            builder.Entity<Task>()
+                .HasIndex(t => t.Status);
+
+            builder.Entity<Task>()
+                .HasIndex(t => t.Priority);
             //B trees are effcient in range queries, also filtring on due date is common
 
-         
+
         }
     }
 }

@@ -22,43 +22,53 @@ A REST API for managing projects and their tasks, with per-user data isolation v
 ### 1. Clone the repository
 
 ```bash
-git clone <https://github.com/MostafaElbrawy/Task-Management-REST-API>
+git clone https://github.com/MostafaElbrawy/Task-Management-REST-API
 cd Task_Management
 ```
 
-### 2. Configure the database connection and JWT settings
+### 2. Restore dependencies
 
-In `appsettings.json` (or `appsettings.Development.json`):
+```bash
+dotnet restore
+```
+
+### 3. Configuration of the database connection and JWT settings
+
+In `appsettings.json` :
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=TaskManagementDb;Trusted_Connection=True;TrustServerCertificate=True"
+    "DefaultConnection": "Server=.;Database=Task_management;Trusted_Connection=True;TrustServerCertificate=True;"
   },
-  "Jwt": {
+  "JwtConfig": {
     "Issuer": "TaskManagementApi",
-    "Audience": "TaskManagementApiUsers",
+    "Audience": "TaskManagementApi",
     "Key": "gqOqGqIghWGnVqgmeVSgGkesd6IMfTJ8ZL2ArWdciqe",
-    "ExpiresInMinutes": 60
+    "TokenValidityMins": 60
   }
 }
 ```
 
-### 3. Apply migrations
+The included JWT configuration is for development only.
+
+Update only the database connection string if needed.
+
+### 4. Apply migrations
 
 ```bash
 dotnet ef database update
 ```
 
-### 4. Run the app
+### 5. Run the app
 
 ```bash
 dotnet run
 ```
 
-### 5. Explore the API
+### 6. Explore the API
 
-Swagger UI is available at `https://localhost:{7219}/swagger` once the app is running.
+Swagger UI is available at `https://localhost:{port}/swagger` once the app is running.
 
 ## Authentication
 
@@ -160,11 +170,13 @@ _(all require `Authorization: Bearer <token>`)_
     "description": "Storefront rebuild",
     "createdAt": "2026-07-24T10:00:00Z",
     "updatedAt": "2026-07-24T10:00:00Z"
-  }
+  },
+  "errors": [],
+  "statusCode": 201
 }
 ```
 
-Duplicate names return a `400` validation error.
+Duplicate names return a `422` validation error.
 
 ### Tasks
 
@@ -218,11 +230,13 @@ _(all require `Authorization: Bearer <token>`)_
     "dueDate": "2026-08-15T00:00:00Z",
     "createdAt": "2026-07-24T10:05:00Z",
     "updatedAt": "2026-07-24T10:05:00Z"
-  }
+  },
+  "errors": [],
+  "statusCode": 201
 }
 ```
 
-A `dueDate` in the past returns a `400` validation error.
+A `dueDate` in the past returns a `422` validation error.
 
 ---
 
@@ -232,25 +246,4 @@ A `dueDate` in the past returns a `400` validation error.
 - **Project → Task**: one-to-many, `ProjectId` foreign key on `Task`, configured with cascade delete so removing a project removes its tasks automatically at the database level (not just in application code).
 - **Status / Priority enums**: stored with `[EnumMember]` string values for readable JSON payloads. Each enum includes a `None` member used purely as a validation sentinel — it's rejected by application-layer validation and should never be persisted; it exists so an unset/invalid incoming value can be distinguished from a deliberately-chosen one.
 - **Timestamps**: `CreatedAt`/`UpdatedAt` on both `Project` and `Task` support audit trails and `createdAt` sorting.
-- **Recommended indexes**: `Task.ProjectId` (FK lookups), `Task.Status`, `Task.Priority`, `Task.DueDate` (filter/sort columns), and a unique index on `Project.Name` per user (or globally, depending on your uniqueness rule) to enforce the "no duplicate project names" business rule at the database level, not just in application code.
-
----
-
-## Running Tests
-
-Test project is not set up yet. Planned approach:
-
-- **Unit tests** (xUnit) for `TaskService` business logic: status/priority validation, due-date-in-the-past checks, status-transition handling.
-- **Integration tests** (xUnit + `WebApplicationFactory`) for the three critical flows: create project → add task → mark done → delete project; filter by status+priority; search + pagination.
-
-Once added, tests will run with:
-
-```bash
-dotnet test
-```
-
-## Known Limitations
-
-- No automated tests yet (see above).
-- Docker/`docker-compose` setup not yet added.
-- Soft deletes not implemented (hard deletes currently).
+- **Indexes**: `Task.ProjectId` (FK lookups), `Task.Status`, `Task.Priority`, `Task.DueDate` (filter/sort columns), and a unique index on `Project.Name` per user to enforce the "no duplicate project names" business rule at the database level, not just in application code.
