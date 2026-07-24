@@ -17,6 +17,7 @@ namespace Task_Management.Services
             _userManager = userManager;
         }
 
+        const string dateFormat = "" 
         private static ProjectDto ProjectToDto(Project project) =>
             new ProjectDto
             {

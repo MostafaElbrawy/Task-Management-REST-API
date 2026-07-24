@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Task_Management.Models
@@ -7,7 +6,6 @@ namespace Task_Management.Models
     public class Project
     {
         public int Id { get; set; }
-        [Required]
         public required string Name { get; set; } = null!; 
         public string? Description { get; set; }
         public required DateTime CreatedAt { get; set; }

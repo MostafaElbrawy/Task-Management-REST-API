@@ -6,7 +6,6 @@ namespace Task_Management.Models
     public class Task
     {
         public int Id { get; set; }
-        [Required]
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
         public Status Status { get; set; } = Status.Todo;
