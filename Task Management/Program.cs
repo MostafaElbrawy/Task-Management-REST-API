@@ -38,6 +38,7 @@ namespace Task_Management
             builder.Services.AddScoped<IUnifOfWork, UnitOfWork>();
             builder.Services.AddScoped<IJwtService , JwtService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
+            builder.Services.AddScoped<IProjectService, ProjectService>();
 
             builder.Services.AddValidatorsFromAssemblyContaining<Program>();
             builder.Services.AddControllers(options => options.Filters
