@@ -19,7 +19,7 @@ namespace Task_Management.Filters
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
-
+            
             // Find any action arguments that might have a validator
             foreach (var argument in context.ActionArguments.Values)
             {
@@ -51,6 +51,22 @@ namespace Task_Management.Filters
 
                         return; // Short-circuit the request pipeline
                     }
+                }
+
+                if (!context.ModelState.IsValid)
+                {
+                    var messages = context.ModelState.Values
+                                .SelectMany(v => v.Errors)
+                                .Select(e => e.ErrorMessage)
+                                .ToList();
+                    var response = ApiResponse<bool>.ValidationError(messages);
+
+                    context.Result = new ObjectResult(response)
+                    {
+                        StatusCode = response.StatusCode
+                    };
+
+                    return;
                 }
             }
 

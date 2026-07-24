@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection.Emit;
+using System.Reflection.Metadata;
 
 namespace Task_Management.Models
 {
@@ -36,8 +37,10 @@ namespace Task_Management.Models
                 .HasIndex(t => t.ProjectId); // Tasks are retrieved by project id 
 
             builder.Entity<Task>()
-                .HasIndex(t => t.DueDate); 
+                .HasIndex(t => t.DueDate);
             //B trees are effcient in range queries, also filtring on due date is common
+
+         
         }
     }
 }

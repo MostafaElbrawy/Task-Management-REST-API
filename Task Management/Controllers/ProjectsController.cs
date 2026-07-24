@@ -11,6 +11,7 @@ namespace Task_Management.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ProjectsController : ControllerBase
     {
         private readonly IProjectService _projectService;
@@ -30,7 +31,7 @@ namespace Task_Management.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        [HttpGet("{projectId:int}")]
+        [HttpGet("{ProjectId:int}")]
         [Authorize]
         public async Task<IActionResult> GetProject(int projectId)
         {
@@ -59,7 +60,7 @@ namespace Task_Management.Controllers
 
         }
 
-        [HttpPut("{projectId:int}")]
+        [HttpPut("{ProjectId:int}")]
         [Authorize]
         public async Task<IActionResult> UpdateProject(CreateUpdateProjectDto updateDto,int projectId)
         {
@@ -76,7 +77,7 @@ namespace Task_Management.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        [HttpDelete("{projectId:int}")]
+        [HttpDelete("{ProjectId:int}")]
         [Authorize]
         public async Task<IActionResult> DeleteProject(int projectId)
         {

@@ -9,7 +9,7 @@ namespace Task_Management.Models
         public required string Name { get; set; } = null!; 
         public string? Description { get; set; }
         public required DateTime CreatedAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
+        public required DateTime UpdatedAt { get; set; }
 
         [ForeignKey(nameof(User))]
         public required int UserId { get; set; }

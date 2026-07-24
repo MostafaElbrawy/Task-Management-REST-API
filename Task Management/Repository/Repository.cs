@@ -16,6 +16,7 @@ namespace Task_Management.Repository
         }
 
         public IQueryable<T> GetAll()
+        
         {
             return _dbSet.AsQueryable();
         }

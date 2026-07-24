@@ -1,11 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using Task_Management.Enums;
-
-namespace Task_Management.Models
+﻿using Task_Management.Enums;
+namespace Task_Management.DTOs
 {
-    public class Task
+    public class TaskDto
     {
-        public int Id { get; set; }
+        public required int Id { get; set; }
+        public required string ProjectName { get; set; }
         public required string Title { get; set; } = null!;
         public string? Description { get; set; }
         public Status Status { get; set; } = Status.Todo;
@@ -13,11 +12,5 @@ namespace Task_Management.Models
         public DateTime? DueDate { get; set; } = null;
         public required DateTime CreatedAt { get; set; }
         public required DateTime UpdatedAt { get; set; }
-
-        [ForeignKey(nameof(Project))]
-        public int ProjectId { get; set; }
-        public virtual Project Project { get; set; } = null!;
     }
-
-    
 }

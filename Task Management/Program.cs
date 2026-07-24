@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json.Serialization;
 using Task_Management.Filters;
 using Task_Management.Models;
 using Task_Management.Repository;
@@ -13,12 +14,17 @@ namespace Task_Management
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public async static System.Threading.Tasks.Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(
+                        new JsonStringEnumConverter());
+                });
             builder.Services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.SuppressModelStateInvalidFilter = true;
@@ -39,6 +45,7 @@ namespace Task_Management
             builder.Services.AddScoped<IJwtService , JwtService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IProjectService, ProjectService>();
+            builder.Services.AddScoped <ITaskService, TaskService>();
 
             builder.Services.AddValidatorsFromAssemblyContaining<Program>();
             builder.Services.AddControllers(options => options.Filters
@@ -87,6 +94,11 @@ namespace Task_Management
 
 
             app.MapControllers();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                await DbInitializer.SeedAsync(scope.ServiceProvider);
+            }
 
             app.Run();
         }

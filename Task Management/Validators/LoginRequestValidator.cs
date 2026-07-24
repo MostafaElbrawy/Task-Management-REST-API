@@ -11,6 +11,8 @@ namespace Task_Management.Validators
                 .NotEmpty().WithMessage("Email is required")
                 .EmailAddress().WithMessage("Email is not valid"); //uniquness is done by user manager
 
+            RuleFor(r => r.Password)
+                .NotEmpty().WithMessage("Password is required");
         }
     }
 }

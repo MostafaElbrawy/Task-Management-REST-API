@@ -2,5 +2,6 @@
 {
     public interface ITaskRepository : IRepository<Models.Task>
     {
+        Task<Models.Task?> GetByIdWithProject(int taskId);
     }
 }

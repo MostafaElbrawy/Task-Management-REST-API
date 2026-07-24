@@ -17,10 +17,10 @@ namespace Task_Management.Services
             _userManager = userManager;
         }
 
-        const string dateFormat = "" 
         private static ProjectDto ProjectToDto(Project project) =>
             new ProjectDto
             {
+                Id = project.Id,
                 Name = project.Name,
                 Description = project.Description,
                 CreatedAt = project.CreatedAt,
@@ -35,6 +35,7 @@ namespace Task_Management.Services
             var projectsQuery = _unitOfWork.Projects.GetAll()
                 .AsNoTracking()
                 .Where(p => p.UserId == userId)
+                .OrderBy(p => p.Id) //for pagination
                 .Select(p => ProjectToDto(p));
             var data = await PagedList<ProjectDto>.CreateAsync(projectsQuery, page, pageSize);
             return ApiResponse<PagedList<ProjectDto>>.Ok(data);
@@ -64,8 +65,8 @@ namespace Task_Management.Services
             {
                 Name = createDto.Name,
                 Description = createDto.Description,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
                 UserId = userId,
             };
             bool result = await _unitOfWork.Projects.AddAsync(project);
@@ -96,7 +97,7 @@ namespace Task_Management.Services
 
             project.Name = updateDto.Name;
             project.Description = updateDto.Description;
-            project.UpdatedAt = DateTime.Now;
+            project.UpdatedAt = DateTime.UtcNow;
 
             bool result = await _unitOfWork.Projects.UpdateAsync(project);
             if (!result)
