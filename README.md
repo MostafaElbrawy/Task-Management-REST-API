@@ -11,79 +11,50 @@ A REST API for managing projects and their tasks, with per-user data isolation v
 - FluentValidation
 - Swagger / OpenAPI
 
-## Setup Instructions
+## Quick Start (Docker)
 
-### Prerequisites
-
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- SQL Server (LocalDB, a local instance, or a container)
-- `dotnet-ef` tool: `dotnet tool install --global dotnet-ef` (if not already installed)
-
-### 1. Clone the repository
+Prerequisite: Docker Desktop (or Docker Engine + Compose).
 
 ```bash
 git clone https://github.com/MostafaElbrawy/Task-Management-REST-API
+cd "Task Management REST API"
+docker compose up --build
+```
+
+That's it — SQL Server starts, migrations apply, and demo data seeds automatically. Open:
+
+```
+http://localhost:8080/swagger
+```
+
+Stop with `docker compose down` (add `-v` to also wipe the DB volume).
+
+## Manual Setup (without Docker)
+
+Prerequisites: .NET 10 SDK, a SQL Server instance, `dotnet-ef` (`dotnet tool install --global dotnet-ef`).
+
+```bash
 cd Task_Management
-```
-
-### 2. Restore dependencies
-
-```bash
 dotnet restore
-```
-
-### 3. Configuration of the database connection and JWT settings
-
-In `appsettings.json` :
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=.;Database=Task_management;Trusted_Connection=True;TrustServerCertificate=True;"
-  },
-  "JwtConfig": {
-    "Issuer": "TaskManagementApi",
-    "Audience": "TaskManagementApi",
-    "Key": "gqOqGqIghWGnVqgmeVSgGkesd6IMfTJ8ZL2ArWdciqe",
-    "TokenValidityMins": 60
-  }
-}
-```
-
-The included JWT configuration is for development only.
-
-Update only the database connection string if needed.
-
-### 4. Apply migrations
-
-```bash
 dotnet ef database update
-```
-
-### 5. Run the app
-
-```bash
 dotnet run
 ```
 
-### 6. Explore the API
+Swagger UI: `https://localhost:{port}/swagger`.
 
-Swagger UI is available at `https://localhost:{port}/swagger` once the app is running.
+---
 
 ## Authentication
 
-1. `POST /api/account/register` to create an account, or `POST /api/account/login` if you already have one. Both return a JWT access token.
-2. Include the token on every subsequent request:
-   ```
-   Authorization: Bearer <access_token>
-   ```
-3. In Swagger, click **Authorize** and paste `Bearer <access_token>`.
+1. `POST /api/account/register` or `POST /api/account/login` — both return a JWT.
+2. Send it on every subsequent request: `Authorization: Bearer <access_token>`.
+3. In Swagger: click **Authorize**, paste `Bearer <access_token>`.
 
 ---
 
 ## API Documentation
 
-All responses are wrapped in a standard envelope:
+All responses share this envelope:
 
 ```json
 {
@@ -95,8 +66,6 @@ All responses are wrapped in a standard envelope:
 }
 ```
 
-_(field names assumed from `ApiResponse<T>` usage in the codebase — adjust if your actual class differs)_
-
 ### Account
 
 | Method | Endpoint                | Description              |
@@ -107,7 +76,6 @@ _(field names assumed from `ApiResponse<T>` usage in the codebase — adjust if 
 **POST /api/account/register**
 
 ```json
-// Request
 {
   "email": "alice@example.com",
   "password": "Password123!",
@@ -116,7 +84,7 @@ _(field names assumed from `ApiResponse<T>` usage in the codebase — adjust if 
 ```
 
 ```json
-// 201 Response
+// 201
 {
   "success": true,
   "message": "Account created and logged in successfully",
@@ -132,14 +100,7 @@ _(field names assumed from `ApiResponse<T>` usage in the codebase — adjust if 
 }
 ```
 
-**POST /api/account/login**
-
-```json
-// Request
-{ "email": "alice@example.com", "password": "Password123!" }
-```
-
-Returns the same shape as register on success.
+**POST /api/account/login** — same request/response shape, existing credentials.
 
 ### Projects
 
@@ -156,57 +117,29 @@ _(all require `Authorization: Bearer <token>`)_
 **POST /api/projects**
 
 ```json
-// Request
 { "name": "E-Commerce Platform", "description": "Storefront rebuild" }
 ```
 
-```json
-// 201 Response
-{
-  "success": true,
-  "data": {
-    "id": 3,
-    "name": "E-Commerce Platform",
-    "description": "Storefront rebuild",
-    "createdAt": "2026-07-24T10:00:00Z",
-    "updatedAt": "2026-07-24T10:00:00Z"
-  },
-  "errors": [],
-  "statusCode": 201
-}
-```
-
-Duplicate names return a `422` validation error.
+Duplicate names return `422`.
 
 ### Tasks
 
 _(all require `Authorization: Bearer <token>`)_
 
-| Method | Endpoint                          | Description                                                       |
-| ------ | --------------------------------- | ----------------------------------------------------------------- |
-| GET    | `/api/projects/{projectId}/tasks` | List tasks for one project (filter/sort/paginate)                 |
-| GET    | `/api/tasks`                      | List all your tasks across projects (filter/sort/paginate/search) |
-| GET    | `/api/tasks/{id}`                 | Get one task                                                      |
-| POST   | `/api/projects/{projectId}/tasks` | Create a task under a project                                     |
-| PUT    | `/api/tasks/{id}`                 | Update a task                                                     |
-| DELETE | `/api/tasks/{id}`                 | Delete a task                                                     |
+| Method | Endpoint                          | Description                                       |
+| ------ | --------------------------------- | ------------------------------------------------- |
+| GET    | `/api/projects/{projectId}/tasks` | List tasks for one project (filter/sort/paginate) |
+| GET    | `/api/tasks`                      | List all your tasks (filter/sort/paginate/search) |
+| GET    | `/api/tasks/{id}`                 | Get one task                                      |
+| POST   | `/api/projects/{projectId}/tasks` | Create a task under a project                     |
+| PUT    | `/api/tasks/{id}`                 | Update a task                                     |
+| DELETE | `/api/tasks/{id}`                 | Delete a task                                     |
 
-**Query parameters** (on both list endpoints):
-
-| Param                                | Type                                   | Notes                              |
-| ------------------------------------ | -------------------------------------- | ---------------------------------- |
-| `status`                             | `Todo` \| `InProgress` \| `Done`       | Optional filter                    |
-| `priority`                           | `Low` \| `Medium` \| `High`            | Optional filter                    |
-| `dueDateFrom` / `dueDateTo`          | ISO date                               | Optional range filter              |
-| `sortColumn`                         | `DueDate` \| `Priority` \| `CreatedAt` | Defaults to `Id` if omitted        |
-| `sortOption`                         | `Asc` \| `Desc`                        | Sort direction                     |
-| `page` / `pageSize`                  | int                                    | Pagination                         |
-| `searchTerm` _(GET /api/tasks only)_ | string                                 | Partial match on title/description |
+**Query params** (list endpoints): `status` (`Todo`/`InProgress`/`Done`), `priority` (`Low`/`Medium`/`High`), `dueDateFrom`/`dueDateTo`, `sortColumn` (`DueDate`/`Priority`/`CreatedAt`), `sortOption` (`Asc`/`Desc`), `page`/`pageSize`, and `searchTerm` (GET `/api/tasks` only).
 
 **POST /api/projects/{projectId}/tasks**
 
 ```json
-// Request
 {
   "title": "Implement payment gateway",
   "description": "Integrate Stripe checkout",
@@ -216,37 +149,16 @@ _(all require `Authorization: Bearer <token>`)_
 }
 ```
 
-```json
-// 201 Response
-{
-  "success": true,
-  "data": {
-    "id": 42,
-    "projectName": "E-Commerce Platform",
-    "title": "Implement payment gateway",
-    "description": "Integrate Stripe checkout",
-    "status": "Todo",
-    "priority": "High",
-    "dueDate": "2026-08-15T00:00:00Z",
-    "createdAt": "2026-07-24T10:05:00Z",
-    "updatedAt": "2026-07-24T10:05:00Z"
-  },
-  "errors": [],
-  "statusCode": 201
-}
-```
-
-A `dueDate` in the past returns a `422` validation error.
+A past `dueDate` returns `422`.
 
 ---
 
 ## Schema / Data Model Rationale
 
-- **ApplicationUser → Project**: one-to-many. Every project belongs to exactly one user, enforced via `UserId` foreign key; all project/task queries filter by the authenticated user's Id so users can only see their own data.
-- **Project → Task**: one-to-many, `ProjectId` foreign key on `Task`, configured with cascade delete so removing a project removes its tasks automatically at the database level (not just in application code).
-- **Status / Priority enums**: stored with `[EnumMember]` string values for readable JSON payloads. Each enum includes a `None` member used purely as a validation sentinel — it's rejected by application-layer validation and should never be persisted; it exists so an unset/invalid incoming value can be distinguished from a deliberately-chosen one.
-- **Timestamps**: `CreatedAt`/`UpdatedAt` on both `Project` and `Task` support audit trails and `createdAt` sorting.
-- **Indexes**: `Task.ProjectId` (FK lookups), `Task.Status`, `Task.Priority`, `Task.DueDate` (filter/sort columns), and a unique index on `Project.Name` per user to enforce the "no duplicate project names" business rule at the database level, not just in application code.
+- **ApplicationUser → Project**: one-to-many via `UserId`; all project/task queries filter by the authenticated user.
+- **Project → Task**: one-to-many via `ProjectId`, cascade delete at the DB level.
+- **Status/Priority enums**: each includes a `None` sentinel, rejected by validation — distinguishes "unset" from a deliberate choice.
+- **Indexes**: `Task.ProjectId`/`Status`/`Priority`/`DueDate` (filter/sort columns), unique index on `Project.Name` per user (no-duplicate-names rule enforced at the DB level).
 
 ## Running Tests
 
@@ -255,20 +167,7 @@ cd Task_Management.Tests
 dotnet test
 ```
 
-The test project (`Task_Management.Tests`, xUnit) has two layers: **unit tests**, which isolate a single service class by faking everything it depends on, and **integration tests**, which deliberately let the real controller → service → repository → database chain run together to prove those layers actually cooperate.
+Runs entirely against EF Core InMemory — no Docker or SQL Server needed.
 
-### Unit tests (`Services/`)
-
-| File                     | Covers                                                                                                                                                                     |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TaskServiceTests.cs`    | Filtering, sorting, pagination, search, ownership checks, the `Status.None`/`Priority.None` validation guards, due-date-in-the-past handling, done→todo transition logging |
-| `ProjectServiceTests.cs` | CRUD, duplicate-name checks, ownership checks, pagination                                                                                                                  |
-| `AccountServiceTests.cs` | Login/register success and failure paths                                                                                                                                   |
-
-### Integration tests (`Integration/`)
-
-`CriticalFlowIntegrationTests.cs` covers the three required flows end to end, using real (non-mocked) implementations of `IUnifOfWork`/repositories (`FakeUnitOfWork.cs`) against a real InMemory database, and real `ProjectService`/`TaskService` instances wired into the real controllers:
-
-1. **Create project → add task → mark done → delete project** — data is created _through the controller actions themselves_ (not seeded), since creation is what's under test. Verifies the task is cascade-deleted along with its project.
-2. **Filter tasks by status and priority** — data is seeded directly into the DB (arrangement, not the thing under test), then queried through `TasksController.GetProjectTasks`.
-3. **Search tasks with pagination** — seeded data, queried through `TasksController.GetAllTasks`, asserting both the returned page and the total count.
+- **Unit tests** (`Services/`): `TaskServiceTests.cs`, `ProjectServiceTests.cs`, `AccountServiceTests.cs` — mock all dependencies to isolate each service.
+- **Integration tests** (`Integration/CriticalFlowIntegrationTests.cs`): real controller → service → repository → DB chain, covering the 3 required flows — create→add task→mark done→delete (with cascade check), filter by status+priority, search+pagination.

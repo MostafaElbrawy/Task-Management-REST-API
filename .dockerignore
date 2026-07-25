@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.git/
+**/*.user
+**/Task_Management.Tests/
+.gitignore
+README.md
+docker-compose.yml
+Dockerfile

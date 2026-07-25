@@ -16,12 +16,14 @@ public static class DbInitializer
         var context = serviceProvider.GetRequiredService<ApplicationContext>();
         var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        // Idempotency guard: if we've already seeded, do nothing.
-        // Safe to call this on every app startup.
+
+        await context.Database.MigrateAsync();
+
         if (await context.Set<Project>().AnyAsync())
         {
             return;
         }
+
 
         var alice = await CreateUserAsync(userManager, "alice.johnson@example.com");
         var bob = await CreateUserAsync(userManager, "bob.smith@example.com");

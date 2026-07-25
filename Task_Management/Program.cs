@@ -31,7 +31,7 @@ namespace Task_Management
             });
             builder.Services.AddDbContext<ApplicationContext>(options =>
             {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sql => sql.EnableRetryOnFailure());
             });
             builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
             {
@@ -87,7 +87,7 @@ namespace Task_Management
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             app.UseAuthentication();
             app.UseAuthorization();
