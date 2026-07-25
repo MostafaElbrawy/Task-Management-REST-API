@@ -247,3 +247,28 @@ A `dueDate` in the past returns a `422` validation error.
 - **Status / Priority enums**: stored with `[EnumMember]` string values for readable JSON payloads. Each enum includes a `None` member used purely as a validation sentinel — it's rejected by application-layer validation and should never be persisted; it exists so an unset/invalid incoming value can be distinguished from a deliberately-chosen one.
 - **Timestamps**: `CreatedAt`/`UpdatedAt` on both `Project` and `Task` support audit trails and `createdAt` sorting.
 - **Indexes**: `Task.ProjectId` (FK lookups), `Task.Status`, `Task.Priority`, `Task.DueDate` (filter/sort columns), and a unique index on `Project.Name` per user to enforce the "no duplicate project names" business rule at the database level, not just in application code.
+
+## Running Tests
+
+```bash
+cd Task_Management.Tests
+dotnet test
+```
+
+The test project (`Task_Management.Tests`, xUnit) has two layers: **unit tests**, which isolate a single service class by faking everything it depends on, and **integration tests**, which deliberately let the real controller → service → repository → database chain run together to prove those layers actually cooperate.
+
+### Unit tests (`Services/`)
+
+| File                     | Covers                                                                                                                                                                     |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TaskServiceTests.cs`    | Filtering, sorting, pagination, search, ownership checks, the `Status.None`/`Priority.None` validation guards, due-date-in-the-past handling, done→todo transition logging |
+| `ProjectServiceTests.cs` | CRUD, duplicate-name checks, ownership checks, pagination                                                                                                                  |
+| `AccountServiceTests.cs` | Login/register success and failure paths                                                                                                                                   |
+
+### Integration tests (`Integration/`)
+
+`CriticalFlowIntegrationTests.cs` covers the three required flows end to end, using real (non-mocked) implementations of `IUnifOfWork`/repositories (`FakeUnitOfWork.cs`) against a real InMemory database, and real `ProjectService`/`TaskService` instances wired into the real controllers:
+
+1. **Create project → add task → mark done → delete project** — data is created _through the controller actions themselves_ (not seeded), since creation is what's under test. Verifies the task is cascade-deleted along with its project.
+2. **Filter tasks by status and priority** — data is seeded directly into the DB (arrangement, not the thing under test), then queried through `TasksController.GetProjectTasks`.
+3. **Search tasks with pagination** — seeded data, queried through `TasksController.GetAllTasks`, asserting both the returned page and the total count.
