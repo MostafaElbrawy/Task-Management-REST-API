@@ -9,11 +9,12 @@ using Task_Management.Filters;
 using Task_Management.Models;
 using Task_Management.Repository;
 using Task_Management.Services;
+using Task_Management.Data;
 namespace Task_Management
 {
     public class Program
     {
-        public async static System.Threading.Tasks.Task Main(string[] args)
+        public async static Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 

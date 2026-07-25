@@ -3,7 +3,7 @@ using Task_Management.Enums;
 
 namespace Task_Management.Models
 {
-    public class Task
+    public class TaskItem
     {
         public int Id { get; set; }
         public required string Title { get; set; } = null!;

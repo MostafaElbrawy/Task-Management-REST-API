@@ -10,14 +10,14 @@ namespace Task_Management.Models
         public ApplicationContext(DbContextOptions<ApplicationContext> options) : base(options) { }
 
         public virtual DbSet<Project> Projects { get; set; }
-        public virtual DbSet<Task> Tasks { get; set; }
+        public virtual DbSet<TaskItem> Tasks { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            builder.Entity<Task>()
+            builder.Entity<TaskItem>()
                 .HasOne(t => t.Project)
                 .WithMany(p => p.Tasks)
                 .HasForeignKey(t => t.ProjectId)
@@ -33,16 +33,16 @@ namespace Task_Management.Models
                 .HasIndex(p => new { p.UserId , p.Name}) 
                 .IsUnique();
 
-            builder.Entity<Task>()
+            builder.Entity<TaskItem>()
                 .HasIndex(t => t.ProjectId); // Tasks are retrieved by project id 
 
-            builder.Entity<Task>()
+            builder.Entity<TaskItem>()
                 .HasIndex(t => t.DueDate);
 
-            builder.Entity<Task>()
+            builder.Entity<TaskItem>()
                 .HasIndex(t => t.Status);
 
-            builder.Entity<Task>()
+            builder.Entity<TaskItem>()
                 .HasIndex(t => t.Priority);
             //B trees are effcient in range queries, also filtring on due date is common
 

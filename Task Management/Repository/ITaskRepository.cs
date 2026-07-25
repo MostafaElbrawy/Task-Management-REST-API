@@ -1,7 +1,8 @@
-﻿namespace Task_Management.Repository
+﻿using Task_Management.Models;
+namespace Task_Management.Repository
 {
-    public interface ITaskRepository : IRepository<Models.Task>
+    public interface ITaskRepository : IRepository<TaskItem>
     {
-        Task<Models.Task?> GetByIdWithProject(int taskId);
+        Task<TaskItem?> GetByIdWithProject(int taskId);
     }
 }

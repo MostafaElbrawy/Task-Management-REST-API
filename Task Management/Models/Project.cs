@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Task_Management.Models
 {
@@ -15,7 +14,7 @@ namespace Task_Management.Models
         public required int UserId { get; set; }
         public virtual ApplicationUser User { get; set; } = null!;
 
-        public virtual ICollection<Task> Tasks { get; set; }
-         = new HashSet<Task>();
+        public virtual ICollection<TaskItem> Tasks { get; set; }
+         = new HashSet<TaskItem>();
     }
 }

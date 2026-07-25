@@ -23,7 +23,7 @@ namespace Task_Management.Services
 
         const Status defaultStatus = Status.Todo;
         const Priority defaultPriority = Priority.Medium;
-        private static TaskDto TaskToDto(Models.Task task , Project project) =>
+        private static TaskDto TaskToDto(TaskItem task , Project project) =>
             new TaskDto
             {
                 Id = task.Id,
@@ -45,6 +45,8 @@ namespace Task_Management.Services
             int page, int pageSize)
             // filtering - sorting - projection - paging
         {
+            if (page <= 0)
+                return ApiResponse<PagedList<TaskDto>>.ValidationError(message: "Invalid page");
             if (status == Status.None)
                 return ApiResponse<PagedList<TaskDto>>.ValidationError( message:"Invalid status value");
             if(priority == Priority.None)
@@ -78,6 +80,8 @@ namespace Task_Management.Services
             TaskSortColumn? sortColumn, SortOption? sortOption,
             int page, int pageSize)
         {
+            if (page <= 0)
+                return ApiResponse<PagedList<TaskDto>>.ValidationError(message: "Invalid page");
 
             if (status == Status.None)
                 return ApiResponse<PagedList<TaskDto>>.ValidationError(message: "Invalid status value");
@@ -131,7 +135,7 @@ namespace Task_Management.Services
             if (project.UserId != userId)
                 return ApiResponse<TaskDto?>.Forbid();
 
-            var task = new Models.Task
+            var task = new TaskItem
             {
                 Title = createDto.Title,
                 Description = createDto.Description,
@@ -180,6 +184,9 @@ namespace Task_Management.Services
             if (newProject.UserId != userId)
                 return ApiResponse<TaskDto?>.Forbid();
 
+            if (task.Status == Status.Done && updateDto.Status == Status.Todo)
+                _logger.LogWarning("Task {TaskId} status changed from Done to Todo.", task.Id);
+
             task.Title = updateDto.Title;
             task.Description = updateDto.Description;
             task.DueDate = updateDto.DueDate;
@@ -191,8 +198,7 @@ namespace Task_Management.Services
             bool result = await _unitfOfWork.Tasks.UpdateAsync(task);
             if (!result)
                 return ApiResponse<TaskDto?>.Fail("Error while updating task");
-            if(task.Status == Status.Done && updateDto.Status == Status.Todo)
-                _logger.LogWarning("Task {TaskId} status changed from Done to Todo.",task.Id);
+            
 
             await _unitfOfWork.CommitAsync();
             var data = TaskToDto(task, newProject);
@@ -216,7 +222,7 @@ namespace Task_Management.Services
             return ApiResponse<bool>.Ok(true);
         }
 
-        private IQueryable<Models.Task> FilterTasks(IQueryable<Models.Task> tasksQuery
+        private IQueryable<TaskItem> FilterTasks(IQueryable<TaskItem> tasksQuery
             ,Status? status, Priority? priority,
             DateTime? dueDateFrom, DateTime? dueDateTo)
         {
@@ -231,10 +237,10 @@ namespace Task_Management.Services
             return tasksQuery;
         }
 
-        private IQueryable<Models.Task> SortTasks(IQueryable<Models.Task> tasksQuery ,
+        private IQueryable<TaskItem> SortTasks(IQueryable<TaskItem> tasksQuery ,
             TaskSortColumn? sortColumn, SortOption? sortOption )
         {
-            Expression<Func<Models.Task, object>> keySelector = sortColumn switch
+            Expression<Func<TaskItem, object>> keySelector = sortColumn switch
             {
                 TaskSortColumn.DueDate => task => task.DueDate,
                 TaskSortColumn.Priority => task => task.Priority,
@@ -250,7 +256,7 @@ namespace Task_Management.Services
             
         }
 
-        private IQueryable<Models.Task> SearchTasks(IQueryable<Models.Task> tasksQuery, string searchTerm)
+        private IQueryable<TaskItem> SearchTasks(IQueryable<TaskItem> tasksQuery, string searchTerm)
         {
             tasksQuery = tasksQuery.Where(t =>
                 t.Title.Contains(searchTerm) ||

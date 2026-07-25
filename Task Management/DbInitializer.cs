@@ -1,10 +1,9 @@
-
-
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Task_Management.Models;
 using Task_Management.Enums;
-namespace Task_Management;
+using Task_Management.Models;
+
+namespace Task_Management.Data;
 
 public static class DbInitializer
 {
@@ -12,7 +11,7 @@ public static class DbInitializer
     // default password policy (upper, lower, digit, non-alphanumeric, 6+ chars).
     private const string DemoPassword = "Password123!";
 
-    public static async System.Threading.Tasks.Task SeedAsync(IServiceProvider serviceProvider)
+    public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
         var context = serviceProvider.GetRequiredService<ApplicationContext>();
         var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -59,11 +58,11 @@ public static class DbInitializer
         }
 
         context.Set<Project>().AddRange(projects);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(); // so each project gets its Id before we attach tasks
 
         foreach (var project in projects)
         {
-            context.Set<Models.Task>().AddRange(GenerateTasks(project, now));
+            context.Set<TaskItem>().AddRange(GenerateTasks(project, now));
         }
 
         await context.SaveChangesAsync();
@@ -91,7 +90,8 @@ public static class DbInitializer
         return user;
     }
 
-    private static List<Models.Task> GenerateTasks(Project project, DateTime now)
+
+    private static List<TaskItem> GenerateTasks(Project project, DateTime now)
     {
         string[] verbs = { "Implement", "Fix", "Refactor", "Add", "Remove", "Optimize", "Update", "Design", "Test", "Document", "Investigate", "Review" };
         string[] subjects =
@@ -108,8 +108,8 @@ public static class DbInitializer
 
         int?[] dueOffsets = { -10, -5, -2, null, 1, 3, 5, 7, 10, 14, 21, 30 };
 
-        var tasks = new List<Models.Task>();
-        int seedIndex = project.Id; // vary the subject/verb pairing per project
+        var tasks = new List<TaskItem>();
+        int seedIndex = project.Id; 
 
         for (int i = 0; i < 12; i++)
         {
@@ -117,7 +117,7 @@ public static class DbInitializer
             var subject = subjects[(i + seedIndex) % subjects.Length];
             var createdAt = now.AddDays(-(5 + i * 4));
 
-            tasks.Add(new Models.Task
+            tasks.Add(new TaskItem
             {
                 Title = $"{verb} {subject}",
                 Description = i % 4 == 0 ? null : $"Task related to {subject} in the {project.Name} project.",
@@ -125,7 +125,7 @@ public static class DbInitializer
                 Priority = priorityCycle[(i + 1) % priorityCycle.Length],
                 DueDate = dueOffsets[i].HasValue ? now.Date.AddDays(dueOffsets[i]!.Value) : null,
                 CreatedAt = createdAt,
-                UpdatedAt = createdAt.AddHours(i + 1),
+                UpdatedAt = i % 3 == 0 ? createdAt : createdAt.AddHours(i + 1),
                 ProjectId = project.Id
             });
         }
