@@ -17,15 +17,12 @@ namespace Task_Management.Tests.Services
         private readonly Mock<ITaskRepository> _taskRepo = new();
         private readonly Mock<IProjectRepository> _projectRepo = new();
         private readonly Mock<IUnifOfWork> _uow = new();
-        private readonly Mock<ILogger<TaskService>> _logger = new(); 
         private readonly TaskService _sut;
 
         public TaskServiceTests()
         {
             _context = TestDbContextFactory.Create();
 
-            // GetAll() returns a real, queryable EF Core source backed by the
-            // in-memory database, Include'd so t.Project is always populated.
             _taskRepo.Setup(r => r.GetAll()).Returns(() => _context.Tasks.Include(t => t.Project));
 
             _uow.Setup(u => u.Tasks).Returns(_taskRepo.Object);
@@ -33,7 +30,8 @@ namespace Task_Management.Tests.Services
             _uow.Setup(u => u.CommitAsync()).ReturnsAsync(1);
 
             var userManager = MockUserManagerFactory.Create();
-            _sut = new TaskService(_uow.Object, userManager.Object,_logger.Object);
+            var logger = new Mock<ILogger<TaskService>>();
+            _sut = new TaskService(_uow.Object, userManager.Object,logger.Object);
         }
 
         public void Dispose() => _context.Dispose();
@@ -52,9 +50,7 @@ namespace Task_Management.Tests.Services
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
-            // GetProjectTasks resolves the project via Projects.GetByIdAsync
-            // directly (not by inferring it from the tasks query), so the mock
-            // needs to know about it too.
+
             _projectRepo.Setup(r => r.GetByIdAsync(project.Id)).ReturnsAsync(project);
 
             return project;
@@ -118,10 +114,7 @@ namespace Task_Management.Tests.Services
             Assert.Equal(422, result.StatusCode);
         }
 
-        // NOTE: this test documents the INTENDED behavior. As of the last code
-        // review, GetProjectTasks is missing a `return` before the NotFound call
-        // and infers project existence from the tasks query rather than checking
-        // the project directly — so this will currently fail until both are fixed.
+
         [Fact]
         public async Task GetProjectTasks_ProjectDoesNotExist_ReturnsNotFound()
         {
