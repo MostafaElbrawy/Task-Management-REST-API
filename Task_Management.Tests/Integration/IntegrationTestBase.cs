@@ -28,10 +28,6 @@ namespace Task_Management.Tests.Integration
             TasksController = new TasksController(new TaskService(UnitOfWork, userManager.Object, NullLogger<TaskService>.Instance));
         }
 
-        // Simulates an authenticated request as the given user id — sets the
-        // ClaimTypes.NameIdentifier claim both controllers read to resolve the
-        // caller. Bypasses [Authorize]/routing entirely since we call action
-        // methods directly rather than going through HTTP.
         protected static void AuthenticateAs(ControllerBase controller, int userId)
         {
             var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) }, "TestAuth");

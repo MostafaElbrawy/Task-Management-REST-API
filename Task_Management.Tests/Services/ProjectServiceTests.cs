@@ -32,13 +32,9 @@ namespace Task_Management.Tests.Services
         {
             for (int i = 0; i < count; i++)
             {
-                _context.Projects.Add(new Project
-                {
-                    Name = $"Project {i}",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    UserId = userId
-                });
+                // Project.Create() factory replaces the old object-initializer
+                // seed; EF assigns the Id on save, so no override needed here.
+                _context.Projects.Add(Project.Create($"Project {i}", null, userId));
             }
             await _context.SaveChangesAsync();
         }
@@ -85,7 +81,7 @@ namespace Task_Management.Tests.Services
         {
             _projectRepo.Setup(r => r.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Project?)null);
 
-            var result = await _sut.Project(1, userId: 1);
+            var result = await _sut.GetProject(1, userId: 1);
 
             Assert.False(result.Success);
             Assert.Equal(404, result.StatusCode);
@@ -94,10 +90,10 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Project_BelongsToDifferentUser_ReturnsForbid()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 2 };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 2);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
 
-            var result = await _sut.Project(1, userId: 1);
+            var result = await _sut.GetProject(1, userId: 1);
 
             Assert.False(result.Success);
             Assert.Equal(403, result.StatusCode);
@@ -106,10 +102,10 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Project_OwnedByUser_ReturnsOk()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 1);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
 
-            var result = await _sut.Project(1, userId: 1);
+            var result = await _sut.GetProject(1, userId: 1);
 
             Assert.True(result.Success);
             Assert.Equal("P", result.Data!.Name);
@@ -120,14 +116,8 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Create_DuplicateName_ReturnsValidationError()
         {
-            _projectRepo.Setup(r => r.GetByNameAsync("Existing")).ReturnsAsync(new Project
-            {
-                Id = 1,
-                Name = "Existing",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                UserId = 1
-            });
+            _projectRepo.Setup(r => r.GetByNameAsync("Existing"))
+                .ReturnsAsync(TestEntityFactory.Project(id: 1, name: "Existing", userId: 1));
 
             var dto = new CreateUpdateProjectDto { Name = "Existing" };
             var result = await _sut.Create(dto, userId: 1);
@@ -181,7 +171,7 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Update_BelongsToDifferentUser_ReturnsForbid()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 2 };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 2);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
 
             var dto = new CreateUpdateProjectDto { Name = "Whatever" };
@@ -194,12 +184,10 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Update_RenamingToExistingName_ReturnsValidationError()
         {
-            var project = new Project { Id = 1, Name = "Old Name", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
+            var project = TestEntityFactory.Project(id: 1, name: "Old Name", userId: 1);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
-            _projectRepo.Setup(r => r.GetByNameAsync("Taken Name")).ReturnsAsync(new Project
-            {
-                Id = 2, Name = "Taken Name", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1
-            });
+            _projectRepo.Setup(r => r.GetByNameAsync("Taken Name"))
+                .ReturnsAsync(TestEntityFactory.Project(id: 2, name: "Taken Name", userId: 1));
 
             var dto = new CreateUpdateProjectDto { Name = "Taken Name" };
             var result = await _sut.Update(dto, projectId: 1, userId: 1);
@@ -211,7 +199,7 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Update_KeepingSameName_DoesNotTriggerDuplicateCheck()
         {
-            var project = new Project { Id = 1, Name = "Same Name", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
+            var project = TestEntityFactory.Project(id: 1, name: "Same Name", userId: 1);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
             _projectRepo.Setup(r => r.UpdateAsync(It.IsAny<Project>())).ReturnsAsync(true);
 
@@ -238,7 +226,7 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Delete_BelongsToDifferentUser_ReturnsForbid()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 2 };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 2);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
 
             var result = await _sut.Delete(1, userId: 1);
@@ -250,7 +238,7 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Delete_Valid_ReturnsOkAndCommits()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 1);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
             _projectRepo.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
 

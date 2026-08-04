@@ -38,7 +38,7 @@ namespace Task_Management.Controllers
             if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out int userId))
                 return Unauthorized();
            
-            var response = await _projectService.Project(projectId ,userId);
+            var response = await _projectService.GetProject(projectId ,userId);
             return StatusCode(response.StatusCode, response);
         }
 

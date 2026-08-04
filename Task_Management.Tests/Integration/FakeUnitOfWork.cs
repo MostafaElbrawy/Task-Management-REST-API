@@ -5,11 +5,6 @@ using Task_Management.Tests.TestHelpers;
 
 namespace Task_Management.Tests.Integration
 {
-    // Minimal real implementations of the repository interfaces, backed by a
-    // real (InMemory) DbContext instead of mocks. AddAsync/UpdateAsync/DeleteAsync
-    // only stage changes on the context — actual persistence happens in
-    // FakeUnitOfWork.CommitAsync(), matching the Unit of Work pattern the real
-    // services expect.
     public class FakeRepository<T> : IRepository<T> where T : class
     {
         protected readonly TestDbContext Context;

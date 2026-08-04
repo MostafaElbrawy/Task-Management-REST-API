@@ -1,8 +1,3 @@
-// ASSUMPTION: IJwtService.GenerateToken(ApplicationUser) is assumed to return
-// Task<TokenDto?> where TokenDto has string AccessToken and int ExpiresIn,
-// inferred from how AccountService consumes it. I don't have IJwtService.cs —
-// if the real interface/type differs, only the mock setups below need adjusting.
-
 using Microsoft.AspNetCore.Identity;
 using Moq;
 using Task_Management.DTOs;
@@ -24,8 +19,6 @@ namespace Task_Management.Tests.Services
             _userManager = MockUserManagerFactory.Create();
             _sut = new AccountService(_jwtService.Object, _userManager.Object);
         }
-
-        // ---------- Login ----------
 
         [Fact]
         public async Task Login_NullEmailOrPassword_ReturnsValidationError()
@@ -75,8 +68,6 @@ namespace Task_Management.Tests.Services
             Assert.Equal("token123", result.Data!.AccessToken);
             Assert.Contains("User", result.Data.Roles);
         }
-
-        // ---------- Register ----------
 
         [Fact]
         public async Task Register_CreateFails_ReturnsFailWithErrors()

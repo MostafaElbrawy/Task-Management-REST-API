@@ -41,7 +41,7 @@ namespace Task_Management.Services
             return ApiResponse<PagedList<ProjectDto>>.Ok(data);
         }
         
-        public async Task<ApiResponse<ProjectDto?>> Project(int projectId , int userId)
+        public async Task<ApiResponse<ProjectDto?>> GetProject(int projectId , int userId)
         {
             var project = await _unitOfWork.Projects.GetByIdAsync(projectId);
             if (project == null)
@@ -61,14 +61,8 @@ namespace Task_Management.Services
             if (existingProject != null && existingProject.UserId == userId)
                 return ApiResponse<ProjectDto?>.ValidationError(message:"Project name aleardy exists");
 
-            var project = new Project
-            {
-                Name = createDto.Name,
-                Description = createDto.Description,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                UserId = userId,
-            };
+            var project = Project.Create(createDto.Name, createDto.Description, userId);
+            
             bool result = await _unitOfWork.Projects.AddAsync(project);
             if (!result)
                 return ApiResponse<ProjectDto?>.Fail("Error while adding project");
@@ -95,9 +89,7 @@ namespace Task_Management.Services
                     return ApiResponse<ProjectDto?>.ValidationError(message: "Project name aleardy exists");
             }
 
-            project.Name = updateDto.Name;
-            project.Description = updateDto.Description;
-            project.UpdatedAt = DateTime.UtcNow;
+            project.Update(updateDto.Name,updateDto.Description, userId);
 
             bool result = await _unitOfWork.Projects.UpdateAsync(project);
             if (!result)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Task_Management.DTOs;
 using Task_Management.Enums;
 using Task_Management.Models;
+using Task_Management.Tests.TestHelpers;
 using Xunit;
 
 namespace Task_Management.Tests.Integration
@@ -58,14 +59,18 @@ namespace Task_Management.Tests.Integration
         {
             AuthenticateAs(TasksController, UserId);
 
-            var project = new Project { Name = "Filter Project", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = UserId };
+            // Project/TaskItem now use private setters + Create() factories,
+            // so entities are built via the domain factory methods rather than
+            // object initializers. No Id override needed here since these go
+            // through the real context and EF assigns the Id on save.
+            var project = Project.Create("Filter Project", null, UserId);
             Context.Projects.Add(project);
             await Context.SaveChangesAsync();
 
             Context.Tasks.AddRange(
-                new TaskItem { Title = "Match", Status = Status.InProgress, Priority = Priority.High, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = project.Id },
-                new TaskItem { Title = "Wrong status", Status = Status.Todo, Priority = Priority.High, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = project.Id },
-                new TaskItem { Title = "Wrong priority", Status = Status.InProgress, Priority = Priority.Low, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = project.Id }
+                TaskItem.Create("Match", null, Status.InProgress, Priority.High, null, project.Id),
+                TaskItem.Create("Wrong status", null, Status.Todo, Priority.High, null, project.Id),
+                TaskItem.Create("Wrong priority", null, Status.InProgress, Priority.Low, null, project.Id)
             );
             await Context.SaveChangesAsync();
 
@@ -86,25 +91,17 @@ namespace Task_Management.Tests.Integration
         {
             AuthenticateAs(TasksController, UserId);
 
-            var project = new Project { Name = "Search Project", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = UserId };
+            var project = Project.Create("Search Project", null, UserId);
             Context.Projects.Add(project);
             await Context.SaveChangesAsync();
 
             // 3 tasks match "payment", 2 don't
             for (int i = 0; i < 3; i++)
             {
-                Context.Tasks.Add(new TaskItem
-                {
-                    Title = $"Fix payment issue {i}",
-                    Status = Status.Todo,
-                    Priority = Priority.Medium,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    ProjectId = project.Id
-                });
+                Context.Tasks.Add(TaskItem.Create($"Fix payment issue {i}", null, Status.Todo, Priority.Medium, null, project.Id));
             }
-            Context.Tasks.Add(new TaskItem { Title = "Unrelated work", Status = Status.Todo, Priority = Priority.Medium, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = project.Id });
-            Context.Tasks.Add(new TaskItem { Title = "Also unrelated", Status = Status.Todo, Priority = Priority.Medium, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = project.Id });
+            Context.Tasks.Add(TaskItem.Create("Unrelated work", null, Status.Todo, Priority.Medium, null, project.Id));
+            Context.Tasks.Add(TaskItem.Create("Also unrelated", null, Status.Todo, Priority.Medium, null, project.Id));
             await Context.SaveChangesAsync();
 
             // Page 1 of 2 (pageSize 2) over the 3 "payment" matches

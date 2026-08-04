@@ -31,7 +31,7 @@ namespace Task_Management.Tests.Services
 
             var userManager = MockUserManagerFactory.Create();
             var logger = new Mock<ILogger<TaskService>>();
-            _sut = new TaskService(_uow.Object, userManager.Object,logger.Object);
+            _sut = new TaskService(_uow.Object, userManager.Object, logger.Object);
         }
 
         public void Dispose() => _context.Dispose();
@@ -40,16 +40,11 @@ namespace Task_Management.Tests.Services
 
         private async Task<Project> SeedProject(int userId, string name = "Project A")
         {
-            var project = new Project
-            {
-                Name = name,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                UserId = userId
-            };
+            // Project.Create() replaces the old object-initializer seed; EF
+            // assigns the Id on save.
+            var project = Project.Create(name, null, userId);
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
-
 
             _projectRepo.Setup(r => r.GetByIdAsync(project.Id)).ReturnsAsync(project);
 
@@ -61,16 +56,13 @@ namespace Task_Management.Tests.Services
             DateTime? dueDate = null, DateTime? createdAt = null)
         {
             var created = createdAt ?? DateTime.UtcNow;
-            var task = new TaskItem
-            {
-                Title = title,
-                Status = status,
-                Priority = priority,
-                DueDate = dueDate,
-                CreatedAt = created,
-                UpdatedAt = created,
-                ProjectId = projectId
-            };
+            var task = TaskItem.Create(title, null, status, priority, dueDate, projectId);
+            // CreatedAt/UpdatedAt aren't Create() parameters (they're set to
+            // UtcNow internally), so override them via reflection when a
+            // specific value is needed for a test.
+            TestEntityFactory.SetProperty(task, nameof(TaskItem.CreatedAt), created);
+            TestEntityFactory.SetProperty(task, nameof(TaskItem.UpdatedAt), created);
+
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
             return task;
@@ -113,7 +105,6 @@ namespace Task_Management.Tests.Services
             Assert.False(result.Success);
             Assert.Equal(422, result.StatusCode);
         }
-
 
         [Fact]
         public async Task GetProjectTasks_ProjectDoesNotExist_ReturnsNotFound()
@@ -244,8 +235,8 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task GetTask_BelongsToDifferentUser_ReturnsForbid()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 2 };
-            var task = new TaskItem { Id = 1, Title = "T", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = 1, Project = project };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 2);
+            var task = TestEntityFactory.Task(id: 1, title: "T", projectId: 1, project: project);
             _taskRepo.Setup(r => r.GetByIdWithProject(1)).ReturnsAsync(task);
 
             var result = await _sut.GetTask(1, userId: 1);
@@ -257,8 +248,8 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task GetTask_OwnedByUser_ReturnsOk()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
-            var task = new TaskItem { Id = 1, Title = "T", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = 1, Project = project };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 1);
+            var task = TestEntityFactory.Task(id: 1, title: "T", projectId: 1, project: project);
             _taskRepo.Setup(r => r.GetByIdWithProject(1)).ReturnsAsync(task);
 
             var result = await _sut.GetTask(1, userId: 1);
@@ -284,7 +275,7 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Create_ProjectBelongsToDifferentUser_ReturnsForbid()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 2 };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 2);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
 
             var dto = new CreateTaskDto { Title = "New task" };
@@ -297,7 +288,7 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Create_NoStatusOrPriorityProvided_AppliesDefaults()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 1);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
             _taskRepo.Setup(r => r.AddAsync(It.IsAny<TaskItem>())).ReturnsAsync(true);
 
@@ -312,7 +303,7 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Create_RepositoryAddFails_ReturnsFail()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 1);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
             _taskRepo.Setup(r => r.AddAsync(It.IsAny<TaskItem>())).ReturnsAsync(false);
 
@@ -340,8 +331,8 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Update_TaskBelongsToDifferentUser_ReturnsForbid()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 2 };
-            var task = new TaskItem { Id = 1, Title = "T", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = 1, Project = project };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 2);
+            var task = TestEntityFactory.Task(id: 1, title: "T", projectId: 1, project: project);
             _taskRepo.Setup(r => r.GetByIdWithProject(1)).ReturnsAsync(task);
 
             var dto = new UpdateTaskDto { Title = "Updated", ProjectId = 1 };
@@ -354,8 +345,8 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Update_TargetProjectNotFound_ReturnsNotFound()
         {
-            var currentProject = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
-            var task = new TaskItem { Id = 1, Title = "T", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = 1, Project = currentProject };
+            var currentProject = TestEntityFactory.Project(id: 1, name: "P", userId: 1);
+            var task = TestEntityFactory.Task(id: 1, title: "T", projectId: 1, project: currentProject);
             _taskRepo.Setup(r => r.GetByIdWithProject(1)).ReturnsAsync(task);
             _projectRepo.Setup(r => r.GetByIdAsync(It.IsAny<int>())).ReturnsAsync((Project?)null);
 
@@ -369,9 +360,9 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Update_TargetProjectBelongsToDifferentUser_ReturnsForbid()
         {
-            var currentProject = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
-            var otherProject = new Project { Id = 2, Name = "Other", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 2 };
-            var task = new TaskItem { Id = 1, Title = "T", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = 1, Project = currentProject };
+            var currentProject = TestEntityFactory.Project(id: 1, name: "P", userId: 1);
+            var otherProject = TestEntityFactory.Project(id: 2, name: "Other", userId: 2);
+            var task = TestEntityFactory.Task(id: 1, title: "T", projectId: 1, project: currentProject);
             _taskRepo.Setup(r => r.GetByIdWithProject(1)).ReturnsAsync(task);
             _projectRepo.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(otherProject);
 
@@ -385,8 +376,8 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Update_ValidRequest_UpdatesFieldsAndReturnsOk()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
-            var task = new TaskItem { Id = 1, Title = "Old title", Status = Status.Todo, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = 1, Project = project };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 1);
+            var task = TestEntityFactory.Task(id: 1, title: "Old title", projectId: 1, status: Status.Todo, project: project);
             _taskRepo.Setup(r => r.GetByIdWithProject(1)).ReturnsAsync(task);
             _projectRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(project);
             _taskRepo.Setup(r => r.UpdateAsync(It.IsAny<TaskItem>())).ReturnsAsync(true);
@@ -415,8 +406,8 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Delete_BelongsToDifferentUser_ReturnsForbid()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 2 };
-            var task = new TaskItem { Id = 1, Title = "T", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = 1, Project = project };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 2);
+            var task = TestEntityFactory.Task(id: 1, title: "T", projectId: 1, project: project);
             _taskRepo.Setup(r => r.GetByIdWithProject(1)).ReturnsAsync(task);
 
             var result = await _sut.Delete(1, userId: 1);
@@ -428,8 +419,8 @@ namespace Task_Management.Tests.Services
         [Fact]
         public async Task Delete_Valid_ReturnsOkAndCommits()
         {
-            var project = new Project { Id = 1, Name = "P", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, UserId = 1 };
-            var task = new TaskItem { Id = 1, Title = "T", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, ProjectId = 1, Project = project };
+            var project = TestEntityFactory.Project(id: 1, name: "P", userId: 1);
+            var task = TestEntityFactory.Task(id: 1, title: "T", projectId: 1, project: project);
             _taskRepo.Setup(r => r.GetByIdWithProject(1)).ReturnsAsync(task);
             _taskRepo.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
 

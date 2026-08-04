@@ -135,17 +135,9 @@ namespace Task_Management.Services
             if (project.UserId != userId)
                 return ApiResponse<TaskDto?>.Forbid();
 
-            var task = new TaskItem
-            {
-                Title = createDto.Title,
-                Description = createDto.Description,
-                Status = createDto.Status ?? defaultStatus,
-                Priority = createDto.Priority ?? defaultPriority,
-                DueDate = createDto.DueDate,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                ProjectId = project.Id,
-            };
+            var task = TaskItem.Create(createDto.Title,createDto.Description,
+                createDto.Status ?? defaultStatus,createDto.Priority ?? defaultPriority,
+                createDto.DueDate,project.Id);
              
             bool result =await  _unitfOfWork.Tasks.AddAsync(task);
             if (!result)
@@ -187,14 +179,10 @@ namespace Task_Management.Services
             if (task.Status == Status.Done && updateDto.Status == Status.Todo)
                 _logger.LogWarning("Task {TaskId} status changed from Done to Todo.", task.Id);
 
-            task.Title = updateDto.Title;
-            task.Description = updateDto.Description;
-            task.DueDate = updateDto.DueDate;
-            task.Status = updateDto.Status ?? defaultStatus;
-            task.Priority = updateDto.Priority ?? defaultPriority;
-            task.UpdatedAt = DateTime.UtcNow;
-            task.ProjectId = newProject.Id;
-            
+            task.Update(updateDto.Title,updateDto.Description,
+            updateDto.Status ?? defaultStatus , updateDto.Priority ?? defaultPriority,
+            updateDto.DueDate,newProject.Id);
+
             bool result = await _unitfOfWork.Tasks.UpdateAsync(task);
             if (!result)
                 return ApiResponse<TaskDto?>.Fail("Error while updating task");
